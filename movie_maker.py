@@ -1,7 +1,7 @@
 import os, sys
 from functools import reduce
 
-# import pymovie
+from moviepy.editor import ImageClip, concatenate_videoclips
 
 
 def main():
@@ -9,20 +9,32 @@ def main():
     if len(sys.argv) > 1:
         source_dir = sys.argv[1]
 
-    video = map(merge_dir, [source_dir])
+    video = merge_dirs([source_dir])
+    video.write_videofile("output/default.mp4", fps=12)
 
-    print(list(video))
+
+def merge_dirs(source_dirs):
+    """ merge multiple directories """
+    merged_dirs = map(merge_dir, source_dirs)
+    return reduce(merge, merged_dirs)
 
 
 def merge_dir(source_dir):
+    """ merge all of the videos in the given directory """
+
     def get_paths(source_dir):
         for path in os.listdir(source_dir):
             yield f"{source_dir}/{path}"
 
-    def merge(a, b):
-        return a + b
-
     return reduce(merge, get_paths(source_dir))
+
+
+def merge(a, b):
+    if isinstance(a, str):
+        a = ImageClip(a).set_duration(2)
+    if isinstance(b, str):
+        b = ImageClip(b).set_duration(2)
+    return concatenate_videoclips([a, b], method="compose")
 
 
 if __name__ == "__main__":

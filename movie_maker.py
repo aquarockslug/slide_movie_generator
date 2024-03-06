@@ -8,7 +8,7 @@ from moviepy.editor import *
 @dataclass
 class MovieData:
     """contains all the data needed to create a movie"""
-    source_dirs = ['source/default']
+    source_dirs = []
     text_files = ['text.txt']
     output_name = 'output/default.mp4'
     beat_interval = 0.92
@@ -48,10 +48,9 @@ def create_movie_from_data(movie_data):
 
 
 def get_movie_data_from_args():
-    # create default movie data
+    """creates default movie data then modifies it with sys.argv"""
     movie_data = MovieData()
 
-    # modify default movie data with args
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             movie_data.source_dirs.append('source/' + arg)
@@ -62,7 +61,7 @@ def get_movie_data_from_args():
 
 
 def create_movie(source_dirs, beat_interval, text_clip_gen):
-    """create video from the source_dirs merged with TextClips from the text_clip_gen"""
+    """create movie from the source_dirs merged with TextClips generated from the text_clip_gen"""
 
     def merge(a, b):
         if isinstance(a, str):
@@ -84,6 +83,7 @@ def create_movie(source_dirs, beat_interval, text_clip_gen):
         return CompositeVideoClip(
             [video, next(text_clip_gen).set_duration(video.duration)])
 
+    # merge dir, add text, merge
     return reduce(merge, map(add_line_from_text, map(merge_dir, source_dirs)))
 
 

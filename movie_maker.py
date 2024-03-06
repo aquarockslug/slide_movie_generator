@@ -1,71 +1,87 @@
-import os, sys
+import os
+import sys
 from functools import reduce
 
-from moviepy.editor import ImageClip, concatenate_videoclips
+from moviepy.editor import *
 
 
 def main():
-    source_dirs = ["default"]
+    source_dirs = ["source/default", "source/test"]
     if len(sys.argv) > 1:
-        source_dir = sys.argv[1:]
+        source_dirs = sys.argv[1:]
 
-    # get_text_clips()
-    create_video(source_dirs, "output/default.mp4")
+    text_files = ["text.txt"]
 
-
-def get_text_clips():
-    for file in get_paths("text"):
-        print(list(get_text(file)))
+    save_video(source_dirs, text_files, "output/default.mp4")
 
 
-def get_text(text_file):
-    def get_lines_from_file(filename):
-        lines = []
-        with open(filename) as file:
+def save_video(source_dirs, text_files, output_name):
+
+    def confirm_save_video(source_dirs, text_files, output):
+        print("\nText Files:")
+        for index, text_file in enumerate(text_files):
+            print(f"{index + 1}) {text_file}")
+        print("\nSource Directories:")
+        for index, source_dir in enumerate(source_dirs):
+            print(f"{index + 1}) {source_dir}")
+        return input(f'\ncreate file "{output}"? (y/n): ').lower() == 'y'
+
+    if confirm_save_video(source_dirs, text_files, output_name):
+        output = create_video(source_dirs, text_files)
+        output.write_videofile(output_name, fps=6)
+
+
+def create_video(source_dirs, text_files):
+    """merge multiple directories"""
+
+    def text_clip():
+        for line in lines(text_files):
+            yield TextClip(line, fontsize=75, color='black').set_pos('center')
+
+    text_clip_gen = text_clip()
+
+    def add_line_from_files(video):
+        return CompositeVideoClip(
+            [video, next(text_clip_gen).set_duration(video.duration)])
+
+    return reduce(merge, map(add_line_from_files, map(merge_dir, source_dirs)))
+
+
+def lines(text_files):
+    """returns a generator that yields a line from the text_files"""
+
+    def get_lines(text_file):
+
+        lines_in_this_file = []
+        with open(text_file, encoding='utf-8') as file:
             while True:
                 line = file.readline()
                 if not line:
                     break
-                lines.append(line)
-        return lines
+                lines_in_this_file.append(line)
 
-    for line in get_lines_from_file(text_file):
-        yield line
+        yield from lines_in_this_file
 
-
-def create_video(source_dirs, output_name):
-    def confirm_create_video(source_dirs, output):
-        print(list(get_text("text/text.txt")))
-        for index, source_dir in enumerate(source_dirs):
-            print(f"{index}) {source_dir}")
-        response = input(f'create file "{output}"? (y/n): ').lower()
-        return True if response == "y" else False
-
-    if confirm_create_video(source_dirs, output_name):
-        merge_dirs(source_dirs).write_videofile(output_name, fps=12)
-
-
-def merge_dirs(source_dirs):
-    """merge multiple directories"""
-    merged_dirs = map(merge_dir, source_dirs)
-    return reduce(merge, merged_dirs)
-
-
-def get_paths(source_dir):
-    for path in os.listdir(source_dir):
-        yield f"{source_dir}/{path}"
+    for file in text_files:
+        yield from get_lines(file)
 
 
 def merge_dir(source_dir):
     """merge all of the videos in the given directory"""
+
+    def get_paths(source_dir):
+        for path in os.listdir(source_dir):
+            yield f"{source_dir}/{path}"
+
     return reduce(merge, get_paths(source_dir))
 
 
 def merge(a, b):
+    """concatenate a and b"""
     if isinstance(a, str):
-        a = ImageClip(a).with_duration(2)
+        a = ImageClip(a).set_duration(1)
     if isinstance(b, str):
-        b = ImageClip(b).with_duration(2)
+        b = ImageClip(b).set_duration(1)
     return concatenate_videoclips([a, b], method="compose")
 
 

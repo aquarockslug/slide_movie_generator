@@ -5,31 +5,48 @@ from functools import reduce
 from moviepy.editor import *
 
 
-def main():
+def create_movie():
+    """create a movie using movie_data()"""
+    create_movie_from_data(movie_data())
+
+
+def movie_data():
     text_files = ["text.txt"]
     output_name = 'output/default.mp4'
-    source_dirs = ["source/default", "source/test"]
+    source_dirs = []
     if len(sys.argv) > 1:
-        source_dirs = sys.argv[1:]
+        for arg in sys.argv[1:]:
+            source_dirs.append('source/' + arg)
+    else:
+        source_dirs = ['source/default']
 
-    def display_list(title, data_list):
-        print("\n", title)
-        for index, data in enumerate(data_list):
-            print(f"{index + 1}) {data}")
+    return (source_dirs, text_files, output_name)
 
-    def confirm_save_video(source_dirs, text_files, output):
-        display_list('Text Files:', text_files)
-        display_list('Source Directories:', source_dirs)
-        return input(f'\ncreate file "{output}"? (y/n): ').lower() == 'y'
+
+def create_movie_from_data(data):
+    source_dirs, text_files, output_name = data
 
     def text_clips():
         """returns a generator that yields TextClips"""
         for line in lines(text_files):
             yield TextClip(line, fontsize=75, color='black').set_pos('center')
 
-    if confirm_save_video(source_dirs, text_files, output_name):
+    if confirm_movie_data(source_dirs, text_files, output_name):
         output = create_video(source_dirs, text_clips())
         output.write_videofile(output_name, fps=6)
+
+
+def confirm_movie_data(source_dirs, text_files, output):
+    """prompt user to confirm that the movie data is correct"""
+
+    def display_list(title, data_list):
+        print("\n", title)
+        for index, data in enumerate(data_list):
+            print(f"{index + 1}) {data}")
+
+    display_list('Text Files:', text_files)
+    display_list('Source Directories:', source_dirs)
+    return input(f'\ncreate file "{output}"? (y/n): ').lower() == 'y'
 
 
 def create_video(source_dirs, text_clip_gen):
@@ -78,4 +95,4 @@ def lines(text_files):
 
 
 if __name__ == "__main__":
-    main()
+    create_movie()

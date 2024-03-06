@@ -78,8 +78,7 @@ def create_video(source_dirs, text_clip_gen):
 def lines(text_files):
     """returns a generator that yields a line from the text_files"""
 
-    def get_lines(text_file):
-
+    def lines_in(text_file):
         lines_in_this_file = []
         with open(text_file, encoding='utf-8') as file:
             while True:
@@ -90,8 +89,8 @@ def lines(text_files):
 
         yield from lines_in_this_file
 
-    for file in text_files:
-        yield from get_lines(file)
+    for text_file in text_files:
+        yield from lines_in(text_file)
 
 
 if __name__ == "__main__":

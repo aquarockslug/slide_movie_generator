@@ -2,6 +2,7 @@ import os
 import sys
 from dataclasses import dataclass
 from functools import reduce
+
 from moviepy.editor import *
 
 
@@ -11,7 +12,7 @@ class MovieData:
     source_dirs = []
     text_files = ['text.txt']
     output_name = 'output/default.mp4'
-    beat_interval = 0.92
+    image_interval = 1
 
 
 def create_movie_from_args():
@@ -42,9 +43,9 @@ def create_movie_from_data(movie_data):
             yield TextClip(line, fontsize=75, color='black').set_pos('center')
 
     if confirm_movie_data(movie_data):
-        output = create_movie(movie_data.source_dirs, movie_data.beat_interval,
-                              text_clips())
-        output.write_videofile(movie_data.output_name, fps=6)
+        output = create_movie(movie_data.source_dirs,
+                              movie_data.image_interval, text_clips())
+        output.write_videofile(movie_data.output_name, fps=3)
 
 
 def get_movie_data_from_args():
@@ -60,31 +61,48 @@ def get_movie_data_from_args():
     return movie_data
 
 
-def create_movie(source_dirs, beat_interval, text_clip_gen):
+def create_movie(source_dirs, image_interval, text_clip_gen):
     """create movie from the source_dirs merged with TextClips generated from the text_clip_gen"""
 
     def merge(a, b):
         if isinstance(a, str):
-            a = ImageClip(a).set_duration(beat_interval)
+            a = ImageClip(a).set_duration(image_interval)
         if isinstance(b, str):
-            b = ImageClip(b).set_duration(beat_interval)
+            b = ImageClip(b).set_duration(image_interval)
         return concatenate_videoclips([a, b], method="compose")
 
-    def merge_dir(source_dir):
+    def create_countdown(source_dir):
         """merge all of the videos in the given directory"""
 
         def get_paths(source_dir):
-            for path in os.listdir(source_dir):
+            for path in reversed(sorted(os.listdir(source_dir))):
                 yield f"{source_dir}/{path}"
 
-        return reduce(merge, get_paths(source_dir))
+        def countdown():
+            yield from reversed(range(1, 9))
+
+        number_gen = countdown()
+
+        def add_number(video):
+            if isinstance(video, str):
+                video = ImageClip(video).set_duration(image_interval)
+
+            return CompositeVideoClip([
+                video,
+                ImageClip(
+                    f'blank_countdown/{next(number_gen)}.png').set_duration(
+                        video.duration)
+            ])
+
+        return reduce(merge, map(add_number, get_paths(source_dir)))
 
     def add_line_from_text(video):
         return CompositeVideoClip(
             [video, next(text_clip_gen).set_duration(video.duration)])
 
     # merge dir, add text, merge
-    return reduce(merge, map(add_line_from_text, map(merge_dir, source_dirs)))
+    return reduce(merge,
+                  map(add_line_from_text, map(create_countdown, source_dirs)))
 
 
 def lines(text_files):

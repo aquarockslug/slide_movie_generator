@@ -1,62 +1,74 @@
 import os
 import sys
+from dataclasses import dataclass
 from functools import reduce
-
 from moviepy.editor import *
 
 
-def create_movie():
-    """create a movie using movie_data()"""
-    create_movie_from_data(movie_data())
-
-
-def movie_data():
-    text_files = ["text.txt"]
+@dataclass
+class MovieData:
+    """contains all the data needed to create a movie"""
+    source_dirs = ['source/default']
+    text_files = ['text.txt']
     output_name = 'output/default.mp4'
-    source_dirs = []
-    if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            source_dirs.append('source/' + arg)
-    else:
-        source_dirs = ['source/default']
-
-    return (source_dirs, text_files, output_name)
+    beat_interval = 0.92
 
 
-def create_movie_from_data(data):
-    source_dirs, text_files, output_name = data
+def create_movie_from_args():
+    """create a movie using movie_data()"""
+    create_movie_from_data(get_movie_data_from_args())
+
+
+def create_movie_from_data(movie_data):
+    """create a movie with the data from the Movie dataclass"""
+
+    def confirm_movie_data(movie_data):
+        """prompt user to confirm that the movie data is correct"""
+
+        def display_list(title, data_list):
+            print("\n", title)
+            for index, data in enumerate(data_list):
+                print(f"{index + 1}) {data}")
+
+        display_list('Text Files:', movie_data.text_files)
+        display_list('Source Directories:', movie_data.source_dirs)
+
+        return input(f'\ncreate file "{movie_data.output_name}"? (y/n): '
+                     ).lower() == 'y'
 
     def text_clips():
         """returns a generator that yields TextClips"""
-        for line in lines(text_files):
+        for line in lines(movie_data.text_files):
             yield TextClip(line, fontsize=75, color='black').set_pos('center')
 
-    if confirm_movie_data(source_dirs, text_files, output_name):
-        output = create_video(source_dirs, text_clips())
-        output.write_videofile(output_name, fps=6)
+    if confirm_movie_data(movie_data):
+        output = create_movie(movie_data.source_dirs, movie_data.beat_interval,
+                              text_clips())
+        output.write_videofile(movie_data.output_name, fps=6)
 
 
-def confirm_movie_data(source_dirs, text_files, output):
-    """prompt user to confirm that the movie data is correct"""
+def get_movie_data_from_args():
+    # create default movie data
+    movie_data = MovieData()
 
-    def display_list(title, data_list):
-        print("\n", title)
-        for index, data in enumerate(data_list):
-            print(f"{index + 1}) {data}")
+    # modify default movie data with args
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            movie_data.source_dirs.append('source/' + arg)
+    else:
+        movie_data.source_dirs = ['source/default']
 
-    display_list('Text Files:', text_files)
-    display_list('Source Directories:', source_dirs)
-    return input(f'\ncreate file "{output}"? (y/n): ').lower() == 'y'
+    return movie_data
 
 
-def create_video(source_dirs, text_clip_gen):
+def create_movie(source_dirs, beat_interval, text_clip_gen):
     """create video from the source_dirs merged with TextClips from the text_clip_gen"""
 
     def merge(a, b):
         if isinstance(a, str):
-            a = ImageClip(a).set_duration(1)
+            a = ImageClip(a).set_duration(beat_interval)
         if isinstance(b, str):
-            b = ImageClip(b).set_duration(1)
+            b = ImageClip(b).set_duration(beat_interval)
         return concatenate_videoclips([a, b], method="compose")
 
     def merge_dir(source_dir):
@@ -94,4 +106,4 @@ def lines(text_files):
 
 
 if __name__ == "__main__":
-    create_movie()
+    create_movie_from_args()

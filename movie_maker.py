@@ -40,12 +40,13 @@ def create_movie_from_data(movie_data):
     def text_clips():
         """returns a generator that yields TextClips"""
         for line in lines(movie_data.text_files):
-            yield TextClip(line,
-                           method='caption',
-                           font='Unicorns-are-Awesome',
-                           size=[1920, 1080],
-                           color='pink2',
-                           bg_color='graya(50%, 0.25)').set_pos('center')
+            yield TextClip(
+                line,
+                method='caption',
+                font='Unicorns-are-Awesome',
+                size=[1920, 1080],
+                color='pink2',
+            ).set_pos('center')
 
     if confirm_movie_data(movie_data):
         output = create_movie(movie_data.source_dirs,

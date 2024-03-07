@@ -14,9 +14,8 @@ class MovieData:
     source_dirs = []
     text_files = ['text.txt']
     output_name = 'output/default.mp4'
-    has_countdown = False
     image_interval = 1
-    fps = 1
+    has_countdown = False
 
 
 def create_movie_from_user_input():
@@ -75,7 +74,7 @@ def create_movie_from_data(movie_data):
 
     if confirm_movie_data(movie_data):
         new_movie = create_movie(movie_data, text_clips())
-        new_movie().write_videofile(movie_data.output_name, fps=movie_data.fps)
+        new_movie().write_videofile(movie_data.output_name, fps=3)
 
 
 def lines(text_files):

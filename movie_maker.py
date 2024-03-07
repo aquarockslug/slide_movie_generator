@@ -15,9 +15,9 @@ class MovieData:
     image_interval = 1
 
 
-def create_movie_from_args():
+def create_movie_from_user_input():
     """create a movie using movie_data()"""
-    create_movie_from_data(get_movie_data_from_args())
+    create_movie_from_data(get_movie_data_from_input())
 
 
 def create_movie_from_data(movie_data):
@@ -40,15 +40,20 @@ def create_movie_from_data(movie_data):
     def text_clips():
         """returns a generator that yields TextClips"""
         for line in lines(movie_data.text_files):
-            yield TextClip(line, fontsize=75, color='black').set_pos('center')
+            yield TextClip(line,
+                           method='caption',
+                           font='Unicorns-are-Awesome',
+                           size=[1920, 1080],
+                           color='pink2',
+                           bg_color='graya(50%, 0.25)').set_pos('center')
 
     if confirm_movie_data(movie_data):
         output = create_movie(movie_data.source_dirs,
                               movie_data.image_interval, text_clips())
-        output.write_videofile(movie_data.output_name, fps=3)
+        output.write_videofile(movie_data.output_name, fps=1)
 
 
-def get_movie_data_from_args():
+def get_movie_data_from_input():
     """creates default movie data then modifies it with sys.argv"""
     movie_data = MovieData()
 
@@ -67,8 +72,10 @@ def create_movie(source_dirs, image_interval, text_clip_gen):
     def merge(a, b):
         if isinstance(a, str):
             a = ImageClip(a).set_duration(image_interval)
+            a = a.resize(height=1080)
         if isinstance(b, str):
             b = ImageClip(b).set_duration(image_interval)
+            b = b.resize(height=1080)
         return concatenate_videoclips([a, b], method="compose")
 
     def create_countdown(source_dir):
@@ -85,16 +92,20 @@ def create_movie(source_dirs, image_interval, text_clip_gen):
 
         def add_number(video):
             if isinstance(video, str):
-                video = ImageClip(video).set_duration(image_interval)
+                video = ImageClip(video).set_duration(image_interval).resize(
+                    height=1080)
 
             return CompositeVideoClip([
                 video,
                 ImageClip(
                     f'blank_countdown/{next(number_gen)}.png').set_duration(
-                        video.duration)
+                        video.duration).resize(height=1080)
             ])
 
-        return reduce(merge, map(add_number, get_paths(source_dir)))
+        has_countdown = False
+        if has_countdown:
+            return reduce(merge, map(add_number, get_paths(source_dir)))
+        return reduce(merge, get_paths(source_dir))
 
     def add_line_from_text(video):
         return CompositeVideoClip(
@@ -124,4 +135,4 @@ def lines(text_files):
 
 
 if __name__ == "__main__":
-    create_movie_from_args()
+    create_movie_from_user_input()

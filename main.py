@@ -1,99 +1,170 @@
 import os
+import subprocess
+import random
+import shutil
 import sys
-from dataclasses import dataclass
-from functools import reduce
-from create_movie import create_movie
-from moviepy.editor import (CompositeVideoClip, ImageClip, TextClip,
-                            concatenate_videoclips)
-from create_movie import create_movie
+from movie_maker import create_movie_from_user_input
+
+dir_filename = "dirs.txt"
+file_types = (".jpg", ".png")
+files = {}
+fav_dirs = []
+batch_move = False
+
+windows = False
+linux_image_viewer = "chafa"
 
 
-@dataclass
-class MovieData:
-    """contains all the data needed to create a movie"""
-    source_dirs = []
-    text_files = ['text.txt']
-    output_name = 'output/default.mp4'
-    image_interval = 1
-    has_countdown = False
+def main():
+    print("\n-- MOVIE MAKER --")
+    get_dirs()
+    get_info()
+    main_menu()
 
 
-def create_movie_from_user_input():
-    """create a movie using movie_data()"""
-    create_movie_from_data(get_movie_data_from_input())
+class Random_File:
+    def __init__(self, file_dir=""):
+        self.dir: str = (
+            random.choice(list(files.keys())) if file_dir == "" else fav_dirs[file_dir]
+        )
+        files_in_dir = os.listdir(self.dir)
+        if not files_in_dir:
+            print("No more files to move...")
+            return
+        self.file: str = random.choice(files_in_dir)
+        self.path: str = f"{self.dir}/{self.file}"
+
+    def rate(self, i=0, count=1):
+        """
+        Rate a random file and move it to a favorite directory
+        Loop until i is equal to count
+        """
+        if i >= count:
+            return
+        print(f"\n\b[ {i+1} / {count} ]")
+        self.open()
+        for fav_i, fav_dir in enumerate(fav_dirs):
+            print(f"{fav_i+1}) {fav_dir}")
+        feedback: str = input(f"Move to... (1-{len(fav_dirs)}): ")
+        rating: int = (
+            int(-1 if feedback == "" or not feedback.isdigit() else feedback)
+        ) - 1
+        if 0 <= rating and rating < len(fav_dirs):
+            new_path: str = fav_dirs[rating]
+        else:
+            new_path: str = "not moved"
+
+        if batch_move:
+            Random_File().rate(i + 1, count)
+            self.move(new_path)
+        else:
+            self.move(new_path)
+            Random_File().rate(i + 1, count)
+
+    def open(self):
+        if windows:
+            os.startfile(self.path)
+        else:
+            subprocess.call([linux_image_viewer, self.path])
+        print(f"{self.file} in {self.dir}")
+        return
+
+    def move(self, new_path):
+        if new_path == "not moved":
+            print("file not moved")
+            return
+        shutil.move(self.path, new_path)
+        print(f"Moved {self.file} to {new_path}")
 
 
-def get_movie_data_from_input():
-    """creates default movie data then modifies it with user input"""
-    movie_data = MovieData()
-
-    if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            movie_data.source_dirs.append('source/' + arg)
-    else:
-        movie_data.source_dirs = ['source/default']
-
-    if input('Add Countdown? (y/n): ').lower() == 'y':
-        movie_data.has_countdown = True
-
-    return movie_data
+def get_files(file_dir, overwrite=False):
+    if len(files[file_dir]) == 0 or overwrite:  # scan dir if not already scanned
+        files[file_dir] = [
+            file for file in os.listdir(file_dir) if file.endswith(file_types)
+        ]
+    return files[file_dir]
 
 
-def create_movie_from_data(movie_data):
-    """create a movie with the data from the Movie dataclass"""
-
-    def confirm_movie_data(movie_data):
-        """prompt user to confirm that the movie data is correct"""
-
-        def display_list(title, data_list):
-            print("\n", title)
-            for index, data in enumerate(data_list):
-                print(f"{index + 1}) {data}")
-
-        print("\n--- MOVIE SETTINGS ---")
-        display_list('Text Files:', movie_data.text_files)
-        display_list('Source Directories:', movie_data.source_dirs)
-
-        print('\nEffects: ')
-        if movie_data.has_countdown:
-            print("Countdown")
-
-        return input(f'\ncreate file "{movie_data.output_name}"? (y/n): '
-                     ).lower() == 'y'
-
-    def text_clips():
-        """returns a generator that yields TextClips"""
-        for line in lines(movie_data.text_files):
-            yield TextClip(
-                line,
-                method='caption',
-                font='Unicorns-are-Awesome',
-                size=[1080, 1080],
-                color='pink2',
-            ).set_pos('center')
-
-    if confirm_movie_data(movie_data):
-        new_movie = create_movie(movie_data, text_clips())
-        new_movie().write_videofile(movie_data.output_name, fps=3)
+def get_input(prompt="-> "):
+    selection = input(prompt)
+    if selection.isdigit() == False:
+        return get_input("Not a valid selection\n-> ")
+    return int(selection)
 
 
-def lines(text_files):
-    """returns a generator that yields a line from the text_files"""
+def get_info():
+    for d, f in files.items():  # scan all dirs
+        f = get_files(d, True)
+    print("\nInput Directories:")
+    for i, file_dir in enumerate(list(files.keys())):
+        print(f"{i+1}) {len(get_files(file_dir))} files in {file_dir}")
+    print("\nSource Directories:")
+    for i, file_dir in enumerate(fav_dirs):
+        print(f"{i+1}) {len(os.listdir(file_dir))} files in {file_dir}")
 
-    def lines_in(text_file):
-        lines_in_this_file = []
-        with open(text_file, encoding='utf-8') as file:
-            while True:
-                line = file.readline()
-                if not line:
-                    break
-                lines_in_this_file.append(line)
 
-        yield from lines_in_this_file
+def get_dirs():
+    for source_dir, _, _ in os.walk("./source/"):
+        fav_dirs.append(source_dir)
 
-    for text_file in text_files:
-        yield from lines_in(text_file)
+    with open(dir_filename, "r") as file:
+        dir_names = [
+            line.rstrip() for line in file.readlines() if not line.startswith("#")
+        ]
+        for i in range(dir_names.index("unorganized:") + 1, len(dir_names)):
+            if dir_names[i] != "":
+                files[dir_names[i]] = []
+            else:
+                break
+
+
+def main_menu():
+    if len(files) == 0:
+        print("No directory paths in this file")
+        sys.exit()
+
+    print("\n\bMain Menu:")
+    menu = [
+        "Create Movie",
+        "Move Files to Source directory",
+        "Open Random Source File",
+        "Open Random Unorganized File",
+        "Get Info",
+        "Quit",
+    ]
+    for i, item in enumerate(menu):
+        print("%d) %s" % (i + 1, item))
+
+    match get_input():
+        case 1:
+            create_movie_from_user_input()
+        case 2:
+            if len(fav_dirs) == 0:
+                print("No organized directories found")
+            else:
+                count = input("\nHow many files to move?\n-> ")
+                if count == "":
+                    count = "1"
+                if count.isdigit() == True:
+                    Random_File().rate(0, int(count if int(count) > 0 else 1))
+        case 3:
+            rating = int(input("\nWhich directory?\n-> "))
+            Random_File(rating).open()
+            while input(f"Open another file in {fav_dirs[rating]}? (y/n)\n-> ") != "n":
+                Random_File(rating).open()
+        case 4:
+            Random_File().open()
+            while input("Open another file? (y/n)\n-> ") != "n":
+                Random_File().open()
+        case 5:
+            get_info()
+        case 6:
+            sys.exit()
+        case _:
+            main_menu()
+
+    main_menu()
 
 
 if __name__ == "__main__":
-    create_movie_from_user_input()
+    main()

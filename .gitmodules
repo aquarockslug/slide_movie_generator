@@ -1,0 +1,3 @@
+[submodule "SimpleFileOrganizer"]
+	path = SimpleFileOrganizer
+	url = git@github.com:aquarockslug/SimpleFileOrganizer.git

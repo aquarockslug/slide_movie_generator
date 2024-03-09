@@ -5,7 +5,7 @@ import shutil
 import sys
 from movie_maker import create_movie_from_user_input
 
-dir_filename = "dirs.txt"
+DIR_FILENAME = "input.txt"
 file_types = (".jpg", ".png")
 files = {}
 fav_dirs = []
@@ -127,7 +127,7 @@ def get_dirs():
 
 def main_menu():
     if len(files) == 0:
-        print("No directory paths in this file")
+        print("No input files found")
         sys.exit()
 
     print("\n\bMain Menu:")

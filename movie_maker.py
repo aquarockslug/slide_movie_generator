@@ -3,17 +3,22 @@ import sys
 from dataclasses import dataclass
 from functools import reduce
 from create_movie import create_movie
-from moviepy.editor import (CompositeVideoClip, ImageClip, TextClip,
-                            concatenate_videoclips)
+from moviepy.editor import (
+    CompositeVideoClip,
+    ImageClip,
+    TextClip,
+    concatenate_videoclips,
+)
 from create_movie import create_movie
 
 
 @dataclass
 class MovieData:
     """contains all the data needed to create a movie"""
+
     source_dirs = []
-    text_files = ['text.txt']
-    output_name = 'output/default.mp4'
+    text_files = ["text.txt"]
+    output_name = "output/default.mp4"
     image_interval = 1
     has_countdown = False
 
@@ -29,11 +34,13 @@ def get_movie_data_from_input():
 
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
-            movie_data.source_dirs.append('source/' + arg)
+            movie_data.source_dirs.append("source/" + arg)
     else:
-        movie_data.source_dirs = ['source/default']
+        for source_dir, _, _ in os.walk("source/"):
+            movie_data.source_dirs.append(source_dir)
+        movie_data.source_dirs.pop(0)
 
-    if input('Add Countdown? (y/n): ').lower() == 'y':
+    if input("Add Countdown? (y/n): ").lower() == "y":
         movie_data.has_countdown = True
 
     return movie_data
@@ -51,26 +58,27 @@ def create_movie_from_data(movie_data):
                 print(f"{index + 1}) {data}")
 
         print("\n--- MOVIE SETTINGS ---")
-        display_list('Text Files:', movie_data.text_files)
-        display_list('Source Directories:', movie_data.source_dirs)
+        display_list("Text Files:", movie_data.text_files)
+        display_list("Source Directories:", movie_data.source_dirs)
 
-        print('\nEffects: ')
+        print("\nEffects: ")
         if movie_data.has_countdown:
             print("Countdown")
 
-        return input(f'\ncreate file "{movie_data.output_name}"? (y/n): '
-                     ).lower() == 'y'
+        return (
+            input(f'\ncreate file "{movie_data.output_name}"? (y/n): ').lower() == "y"
+        )
 
     def text_clips():
         """returns a generator that yields TextClips"""
         for line in lines(movie_data.text_files):
             yield TextClip(
                 line,
-                method='caption',
-                font='Unicorns-are-Awesome',
+                method="caption",
+                font="monospace",
                 size=[1080, 1080],
-                color='pink2',
-            ).set_pos('center')
+                color="pink2",
+            ).set_pos("center")
 
     if confirm_movie_data(movie_data):
         new_movie = create_movie(movie_data, text_clips())
@@ -82,7 +90,7 @@ def lines(text_files):
 
     def lines_in(text_file):
         lines_in_this_file = []
-        with open(text_file, encoding='utf-8') as file:
+        with open(text_file, encoding="utf-8") as file:
             while True:
                 line = file.readline()
                 if not line:

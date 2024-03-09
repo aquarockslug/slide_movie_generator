@@ -1,7 +1,6 @@
 import os
 import sys
 from dataclasses import dataclass
-from functools import reduce
 from create_movie import create_movie
 from moviepy.editor import (
     CompositeVideoClip,
@@ -9,6 +8,7 @@ from moviepy.editor import (
     TextClip,
     concatenate_videoclips,
 )
+from moviepy.video.fx.all import crop
 from create_movie import create_movie
 
 
@@ -65,9 +65,8 @@ def create_movie_from_data(movie_data):
         if movie_data.has_countdown:
             print("Countdown")
 
-        return (
-            input(f'\ncreate file "{movie_data.output_name}"? (y/n): ').lower() == "y"
-        )
+        return (input(f'\ncreate file "{movie_data.output_name}"? (y/n): ').
+                lower() == "y")
 
     def text_clips():
         """returns a generator that yields TextClips"""
@@ -75,14 +74,15 @@ def create_movie_from_data(movie_data):
             yield TextClip(
                 line,
                 method="caption",
-                font="monospace",
+                font="Unicorns-Are-Awesome",
                 size=[1080, 1080],
                 color="pink2",
             ).set_pos("center")
 
     if confirm_movie_data(movie_data):
         new_movie = create_movie(movie_data, text_clips())
-        new_movie().write_videofile(movie_data.output_name, fps=3)
+        crop(new_movie(),
+                     width=1080).write_videofile(movie_data.output_name, fps=1)
 
 
 def lines(text_files):

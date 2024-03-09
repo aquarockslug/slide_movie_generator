@@ -5,7 +5,7 @@ import shutil
 import sys
 from movie_maker import create_movie_from_user_input
 
-DIR_FILENAME = "input.txt"
+dir_filename = "input.txt"
 file_types = (".jpg", ".png")
 files = {}
 fav_dirs = []
@@ -110,9 +110,6 @@ def get_info():
 def get_dirs():
     for source_dir, _, _ in os.walk("./source/"):
         fav_dirs.append(source_dir)
-
-    if not os.path.isfile(dir_filename):
-        return
 
     with open(dir_filename, "r") as file:
         dir_names = [

@@ -30,7 +30,9 @@ class Random_File:
         files_in_dir = os.listdir(self.dir)
         if not files_in_dir:
             print("No more files to move...")
-            return
+            self.path = ""
+            self.file = ""
+            main_menu() 
         self.file: str = random.choice(files_in_dir)
         self.path: str = f"{self.dir}/{self.file}"
 
@@ -62,6 +64,8 @@ class Random_File:
             Random_File().rate(i + 1, count)
 
     def open(self):
+        if not self.path:
+            return
         if windows:
             os.startfile(self.path)
         else:
@@ -107,11 +111,14 @@ def get_dirs():
     for source_dir, _, _ in os.walk("./source/"):
         fav_dirs.append(source_dir)
 
+    if not os.path.isfile(dir_filename):
+        return
+
     with open(dir_filename, "r") as file:
         dir_names = [
             line.rstrip() for line in file.readlines() if not line.startswith("#")
         ]
-        for i in range(dir_names.index("unorganized:") + 1, len(dir_names)):
+        for i in range(0, len(dir_names)):
             if dir_names[i] != "":
                 files[dir_names[i]] = []
             else:

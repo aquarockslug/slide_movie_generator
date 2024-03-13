@@ -108,7 +108,7 @@ def get_info():
 
 
 def get_dirs():
-    for source_dir, _, _ in os.walk("./source/"):
+    for source_dir, _, _ in os.walk("./scenes/"):
         fav_dirs.append(source_dir)
 
     with open(dir_filename, "r") as file:

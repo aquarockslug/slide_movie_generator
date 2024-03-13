@@ -34,9 +34,9 @@ def get_movie_data_from_input():
 
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
-            movie_data.source_dirs.append("source/" + arg)
+            movie_data.source_dirs.append("scenes/" + arg)
     else:
-        for source_dir, _, _ in os.walk("source/"):
+        for source_dir, _, _ in os.walk("scenes/"):
             movie_data.source_dirs.append(source_dir)
         movie_data.source_dirs.pop(0)
 

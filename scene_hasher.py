@@ -27,6 +27,7 @@ def alpharemover(image):
 
 
 def image_loader(hashfunc, hash_size=8):
+
     def function(path):
         image = alpharemover(Image.open(path))
         return hashfunc(image)
@@ -35,15 +36,16 @@ def image_loader(hashfunc, hash_size=8):
 
 
 def with_ztransform_preprocess(hashfunc, hash_size=8):
+
     def function(path):
         image = alpharemover(Image.open(path))
-        image = image.convert("L").resize((hash_size, hash_size), Image.ANTIALIAS)
+        image = image.convert("L").resize((hash_size, hash_size),
+                                          Image.ANTIALIAS)
         data = image.getdata()
         quantiles = np.arange(100)
         quantiles_values = np.percentile(data, quantiles)
-        zdata = (np.interp(data, quantiles_values, quantiles) / 100 * 255).astype(
-            np.uint8
-        )
+        zdata = (np.interp(data, quantiles_values, quantiles) / 100 *
+                 255).astype(np.uint8)
         image.putdata(zdata)
         return hashfunc(image)
 
@@ -54,18 +56,23 @@ def hashes(files=sys.argv[1:]):
     if isinstance(files, str):
         files = [files]
     hashfuncopeners = [(name, image_loader(func)) for name, func in hashfuncs]
-    hashfuncopeners += [
-        (name + "-z", with_ztransform_preprocess(func))
-        for name, func in hashfuncs
-        if name != "colorhash"
-    ]
-    hashes = []
+    hashfuncopeners += [(name + "-z", with_ztransform_preprocess(func))
+                        for name, func in hashfuncs if name != "colorhash"]
+    output_hashes = []
     for path in files:
-        hashes = [str(hashfuncopener(path)) for name, hashfuncopener in hashfuncopeners]
-    return hashes
+        output_hashes = [
+            str(hashfuncopener(path))
+            for name, hashfuncopener in hashfuncopeners
+        ]
+    return output_hashes
 
-def hash(path, hash_type=1):
-    return str(image_loader(hashfuncs[hash_type][1])(path))
+
+def hash(paths, hash_type=1):
+    if isinstance(paths, list):
+        return [
+            str(image_loader(hashfuncs[hash_type][1])(path)) for path in paths
+        ]
+    return str(image_loader(hashfuncs[hash_type][1])(paths))
 
 
 if __name__ == "__main__":

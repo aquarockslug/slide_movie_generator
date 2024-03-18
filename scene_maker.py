@@ -1,31 +1,48 @@
+import os
+import shutil
+import string
 from difflib import SequenceMatcher
 from functools import reduce
 from math import dist
-from random import shuffle
+from random import choice, shuffle
 
 import scene_hasher
 
 
-def get_similarity(a, b):
-    return SequenceMatcher(None, a, b).ratio()
+def create_scenes(paths, average_images_per_scene=5):
+    print("Calculating image hashes...")
+    hash_paths = list(zip(scene_hasher.hash(paths), paths))
+    cluster_count = round(len(paths) / average_images_per_scene)
+    cluster_count = cluster_count if cluster_count <= 25 else 25
+    generate(hash_paths, cluster_count)
 
 
-def find_matches(target_hash, hash_paths, threshold=0.2):
-    """ yields hash_paths of images similar to target_hash """
-    for image_hash in hash_paths:
-        simularity = get_similarity(image_hash[0], target_hash)
-        if image_hash[0] == target_hash:
-            print("Exact match:", image_hash[1])
-            continue
-        if simularity > threshold:
-            print(simularity * 100, "match:", image_hash[1])
-            yield image_hash
+def generate(hash_paths, cluster_count):
+    generated_clusters, spread_values = [], []
+    for _ in range(0, 1000):
+        clusters, spread_value = create_clusters(hash_paths, cluster_count)
+        generated_clusters.append(clusters)
+        spread_values.append(spread_value)
+
+    best_spread = min(spread_values)
+    best_index = spread_values.index(best_spread)
+
+    print("Amount of clusters: ", cluster_count)
+    print("Average spread: ", sum(spread_values) / len(spread_values))
+    print("Best spread: ", str(round(best_spread)))
+
+    if input("Create scenes? (y/n) ").lower() == "y":
+        copy_images(generated_clusters[best_index])
+    else:
+        generate(hash_paths, cluster_count)
+
+    print("Copying files...")
 
 
-def choose_targets(all_points, target_count=10):
+def choose_targets(all_points, target_count):
     """ splits the points into target and non-target """
     shuffle(all_points)
-    return all_points[:target_count], all_points[target_count:]
+    return all_points[:target_count]
 
 
 def convert_to_points(hash_paths):
@@ -40,47 +57,59 @@ def calculate_point(image_hash):
     def base16(factor):
         return int(factor, base=16)
 
-    def get_modulo(factor):
+    def modulo(factor):
         return base16(factor) % 16
 
-    def get_average(factor):
+    def average(factor):
         return reduce(lambda a, b: a + b,
                       map(lambda char: int(char, base=16), factor),
                       0) / len(factor)
 
-    placement_func = [get_average, get_modulo, base16][2]
-    return (placement_func(image_hash[:len(image_hash) // 2]),
-            placement_func(image_hash[len(image_hash) // 2:]))
+    def similarity(a):
+        return SequenceMatcher(None, a, "1111111111111111").ratio() * 16
+
+    placement_func = [average, similarity, modulo, base16]
+    return (placement_func[0](image_hash), placement_func[1](image_hash))
 
 
-def create_scenes(paths):
-    """ move images from input path to scene directory """
-
-    hash_paths = list(zip(scene_hasher.hash(paths), paths))
-    if not hash_paths:
-        print("hashing error")
-        return
+def create_clusters(hash_paths, cluster_count):
+    """ returns a list of (image_path, cluster_index) """
 
     point_paths = convert_to_points(hash_paths)
-    targets, points = choose_targets(point_paths)
+    targets = choose_targets(point_paths, cluster_count)
 
     clusters = []
     dist_sum = 0
-    for point in points:
+    for point_path in point_paths:
+        point = point_path[0]
         distances = [
-            dist(targets[i][0], point[0]) for i in range(0, len(targets))
+            dist(targets[i][0], point) for i in range(0, cluster_count)
         ]
         min_distance = min(distances)
         dist_sum += min_distance
-        # clusters: path -> target
-        clusters.append((targets[distances.index(min_distance)][1], point[1]))
+        clusters.append((point_path[1], distances.index(min_distance)))
 
-    def display_clusters():
-        for target in targets:
-            print("\n" + str(target[1]))
-            for image in clusters:
-                if image[0] == target[1]:
-                    print("   ", image[1])
-        print("\nGroup spread: " + str(round(dist_sum)))
+    return [clusters, dist_sum]
 
-    display_clusters()
+
+def copy_images(clusters):
+    dest_image_path = None
+    target_scene_names = list(string.ascii_lowercase)
+    for image_path, target_index in clusters:
+        target_scene_name = target_scene_names[target_index]
+        dest_image_path = new_scene_image(image_path, target_scene_name)
+        # print(f"Copied {image_path} to {target_scene_name}")
+    return dest_image_path
+
+
+def new_scene_image(file_path, scene_name):
+    scene_dir = os.path.join("scenes", scene_name)
+    image_name = "".join(
+        [choice(list(string.ascii_lowercase)) for i in range(0, 6)])
+    if not os.path.exists(scene_dir):
+        os.makedirs(scene_dir)
+
+    dest_image_path = os.path.join("scenes", scene_name, image_name)
+
+    shutil.copyfile(file_path, dest_image_path)
+    return dest_image_path

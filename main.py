@@ -19,7 +19,7 @@ linux_image_viewer = "chafa"
 
 
 def main():
-    print("\n-- MOVIE MAKER --")
+    print("\n\t\t-- SLIDE MOVIE MAKER --")
     get_dirs()
     get_info()
     main_menu()
@@ -57,10 +57,10 @@ def get_info():
         f = get_files(d, True)
     print("\nInput Directories:")
     for i, file_dir in enumerate(list(files.keys())):
-        print(f"{i+1}) {len(get_files(file_dir))} files in {file_dir}")
-    print("\nSource Directories:")
+        print(f"\t{i+1}) {len(get_files(file_dir))} files in {file_dir}")
+    print("\nScene Directories:")
     for i, file_dir in enumerate(fav_dirs):
-        print(f"{i+1}) {len(os.listdir(file_dir))} files in {file_dir}")
+        print(f"\t{i+1}) {len(os.listdir(file_dir))} files in {file_dir}")
 
 
 def get_dirs():
